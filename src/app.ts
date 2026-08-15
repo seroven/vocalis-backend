@@ -2,7 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import { env } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
-import { apiRouter } from './routes/index.js';
+import { apiRouter } from './routes.js';
 
 export const app = express();
 

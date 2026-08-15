@@ -1,10 +1,12 @@
 import type { NextFunction, Request, Response } from 'express';
+import { sendError } from '../utils/responses.js';
 
 export function notFoundHandler(req: Request, res: Response) {
-  res.status(404).json({
-    ok: false,
-    message: `Ruta no encontrada: ${req.method} ${req.originalUrl}`,
-  });
+  return sendError(
+    res,
+    `Ruta no encontrada: ${req.method} ${req.originalUrl}`,
+    404,
+  );
 }
 
 export function errorHandler(
@@ -14,9 +16,5 @@ export function errorHandler(
   _next: NextFunction,
 ) {
   console.error(error);
-
-  res.status(500).json({
-    ok: false,
-    message: error.message || 'Error interno del servidor',
-  });
+  return sendError(res, error.message || 'Error interno del servidor', 500);
 }
