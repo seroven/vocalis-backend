@@ -1,0 +1,17 @@
+CREATE TABLE IF NOT EXISTS users (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  spotify_id VARCHAR(64) NOT NULL,
+  display_name VARCHAR(255) NULL,
+  email VARCHAR(255) NULL,
+  country VARCHAR(8) NULL,
+  product VARCHAR(32) NOT NULL,
+  spotify_uri VARCHAR(255) NULL,
+  avatar_url VARCHAR(512) NULL,
+  access_token TEXT NOT NULL,
+  refresh_token TEXT NOT NULL,
+  token_expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY users_spotify_id_unique (spotify_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
