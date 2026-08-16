@@ -2,11 +2,13 @@ import { app } from './app.js';
 import { env } from './config/env.js';
 import { ensureUsersTable } from './modules/auth/repositories/user.repository.js';
 import { ensureFavoritesTable } from './modules/favorites/repositories/favorite.repository.js';
+import { ensureLyricSyncTables } from './modules/lyrics/repositories/lyrics-sync.repository.js';
 
 async function start() {
   try {
     await ensureUsersTable();
     await ensureFavoritesTable();
+    await ensureLyricSyncTables();
     console.log('Tablas de Vocalis listas');
   } catch (error) {
     console.error('No se pudieron preparar las tablas', error);
