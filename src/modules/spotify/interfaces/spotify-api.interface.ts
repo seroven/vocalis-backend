@@ -62,6 +62,7 @@ export interface SpotifyTrack {
     name: string;
     images?: SpotifyImage[];
   };
+  duration_ms?: number;
 }
 
 export interface SpotifyArtistAlbums {

@@ -1,13 +1,15 @@
 import { app } from './app.js';
 import { env } from './config/env.js';
 import { ensureUsersTable } from './modules/auth/repositories/user.repository.js';
+import { ensureFavoritesTable } from './modules/favorites/repositories/favorite.repository.js';
 
 async function start() {
   try {
     await ensureUsersTable();
-    console.log('Tabla users lista');
+    await ensureFavoritesTable();
+    console.log('Tablas de Vocalis listas');
   } catch (error) {
-    console.error('No se pudo preparar la tabla users', error);
+    console.error('No se pudieron preparar las tablas', error);
   }
 
   app.listen(env.port, () => {

@@ -203,5 +203,6 @@ export async function getTrackDetail(
     subtitle: artistNames(track.artists ?? []),
     imageUrl: pickImage(track.album?.images),
     artistName: track.artists?.[0]?.name ?? '',
+    durationMs: track.duration_ms ?? 0,
   } satisfies TrackDetail;
 }

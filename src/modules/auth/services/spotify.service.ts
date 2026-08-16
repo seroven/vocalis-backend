@@ -188,6 +188,39 @@ export async function spotifyFetch<T>(
   return (await response.json()) as T;
 }
 
+export async function spotifySend(
+  accessToken: string,
+  path: string,
+  init: {
+    method: string;
+    params?: Record<string, string>;
+    body?: unknown;
+  },
+) {
+  const url = new URL(`${SPOTIFY_API}${path}`);
+
+  Object.entries(init.params ?? {}).forEach(([key, value]) => {
+    url.searchParams.set(key, value);
+  });
+
+  const response = await fetch(url, {
+    method: init.method,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: init.body ? JSON.stringify(init.body) : undefined,
+  });
+
+  if (response.status === 401) {
+    throw new SpotifyUnauthorizedError();
+  }
+
+  if (!response.ok) {
+    await throwSpotifyError(response, url.toString());
+  }
+}
+
 export function pickImage(images?: SpotifyImage[]) {
   if (!images?.length) {
     return null;

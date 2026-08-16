@@ -30,6 +30,7 @@ export interface TrackDetail {
   subtitle: string;
   imageUrl: string | null;
   artistName: string;
+  durationMs: number;
 }
 
 export interface TrackLyricsData {
