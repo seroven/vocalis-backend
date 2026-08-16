@@ -20,13 +20,15 @@ async function deviceExists(accessToken: string, deviceId: string) {
 }
 
 async function waitForDevice(accessToken: string, deviceId: string) {
-  for (let attempt = 0; attempt < 8; attempt += 1) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
     if (await deviceExists(accessToken, deviceId)) {
-      return;
+      return true;
     }
 
-    await wait(300 * (attempt + 1));
+    await wait(250 * (attempt + 1));
   }
+
+  return false;
 }
 
 async function transferPlayback(accessToken: string, deviceId: string) {
@@ -45,6 +47,20 @@ async function transferPlayback(accessToken: string, deviceId: string) {
   }
 }
 
+async function playOnDevice(
+  accessToken: string,
+  trackId: string,
+  deviceId: string,
+) {
+  await spotifySend(accessToken, '/me/player/play', {
+    method: 'PUT',
+    params: { device_id: deviceId },
+    body: {
+      uris: [`spotify:track:${trackId}`],
+    },
+  });
+}
+
 export async function startTrackPlayback(
   accessToken: string,
   trackId: string,
@@ -52,34 +68,20 @@ export async function startTrackPlayback(
 ) {
   await waitForDevice(accessToken, deviceId);
   await transferPlayback(accessToken, deviceId);
-  await wait(250);
+  await wait(200);
 
-  let lastError: unknown;
+  try {
+    await playOnDevice(accessToken, trackId, deviceId);
+  } catch (error) {
+    const missing =
+      error instanceof SpotifyRequestError && error.status === 404;
 
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    try {
-      await spotifySend(accessToken, '/me/player/play', {
-        method: 'PUT',
-        params: { device_id: deviceId },
-        body: {
-          uris: [`spotify:track:${trackId}`],
-        },
-      });
-      return;
-    } catch (error) {
-      lastError = error;
-      const missing =
-        error instanceof SpotifyRequestError && error.status === 404;
-
-      if (!missing || attempt === 3) {
-        throw error;
-      }
-
-      await waitForDevice(accessToken, deviceId);
-      await transferPlayback(accessToken, deviceId);
-      await wait(400 * (attempt + 1));
+    if (!missing) {
+      throw error;
     }
-  }
 
-  throw lastError;
+    await wait(400);
+    await transferPlayback(accessToken, deviceId);
+    await playOnDevice(accessToken, trackId, deviceId);
+  }
 }
