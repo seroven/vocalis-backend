@@ -1,3 +1,4 @@
+import { upgradeSpotifyImage } from '../../auth/services/spotify.service.js';
 import type { CatalogItem, CatalogItemType } from '../../spotify/interfaces/catalog.interface.js';
 
 export interface FavoriteRecord {
@@ -25,6 +26,6 @@ export function toCatalogItem(favorite: FavoriteRecord): CatalogItem {
     type: favorite.item_type,
     title: favorite.title,
     subtitle: favorite.subtitle ?? '',
-    imageUrl: favorite.image_url,
+    imageUrl: upgradeSpotifyImage(favorite.image_url),
   };
 }

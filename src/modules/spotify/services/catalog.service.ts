@@ -206,3 +206,36 @@ export async function getTrackDetail(
     durationMs: track.duration_ms ?? 0,
   } satisfies TrackDetail;
 }
+
+export async function getTrackItems(
+  accessToken: string,
+  trackIds: string[],
+  market: string,
+) {
+  const items: CatalogItem[] = [];
+
+  for (const trackId of trackIds) {
+    try {
+      const track = await spotifyFetch<SpotifyTrack>(
+        accessToken,
+        `/tracks/${trackId}`,
+      );
+      items.push(toTrackItem(track, pickImage(track.album?.images)));
+    } catch {
+      try {
+        const track = await getTrackDetail(accessToken, trackId, market);
+        items.push({
+          id: `track:${track.id}`,
+          type: 'track',
+          title: track.title,
+          subtitle: track.subtitle,
+          imageUrl: track.imageUrl,
+        });
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  return items;
+}

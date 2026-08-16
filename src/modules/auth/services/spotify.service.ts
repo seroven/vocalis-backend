@@ -226,7 +226,21 @@ export function pickImage(images?: SpotifyImage[]) {
     return null;
   }
 
-  return images[1]?.url ?? images[0]?.url ?? null;
+  const ranked = [...images].sort(
+    (left, right) => (right.width ?? 0) - (left.width ?? 0),
+  );
+
+  return ranked[0]?.url ?? images[0]?.url ?? null;
+}
+
+export function upgradeSpotifyImage(url: string | null) {
+  if (!url) {
+    return null;
+  }
+
+  return url
+    .replaceAll('ab67616d00004851', 'ab67616d0000b273')
+    .replaceAll('ab67616d00001e02', 'ab67616d0000b273');
 }
 
 export function artistNames(artists: SpotifyArtistRef[]) {

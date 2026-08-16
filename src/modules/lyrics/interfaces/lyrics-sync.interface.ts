@@ -17,6 +17,20 @@ export interface LyricSyncPayload {
   lines: LyricLine[];
 }
 
+export interface FocusTrackMeta {
+  title: string;
+  subtitle: string;
+  imageUrl: string | null;
+}
+
+export interface FocusTrackRecord {
+  spotify_id: string;
+  title: string;
+  subtitle: string;
+  image_url: string | null;
+  updated_at: Date;
+}
+
 export function toLyricLine(record: LyricLineRecord): LyricLine {
   return {
     text: record.text,
