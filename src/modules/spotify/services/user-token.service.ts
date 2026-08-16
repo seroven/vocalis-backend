@@ -1,7 +1,5 @@
-import {
-  updateUserTokens,
-  type UserRecord,
-} from '../../auth/repositories/user.repository.js';
+import type { UserRecord } from '../../auth/interfaces/user.interface.js';
+import { updateUserTokens } from '../../auth/repositories/user.repository.js';
 import {
   refreshAccessToken,
   SpotifyUnauthorizedError,

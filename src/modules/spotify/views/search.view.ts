@@ -1,10 +1,8 @@
 import type { Request, Response } from 'express';
 import { findUserById } from '../../auth/repositories/user.repository.js';
-import {
-  searchCatalog,
-  type CatalogItemType,
-} from '../../auth/services/spotify.service.js';
+import { resolveMarket, searchCatalog } from '../../auth/services/spotify.service.js';
 import { sendError, sendSuccess } from '../../../utils/responses.js';
+import type { CatalogItemType } from '../interfaces/catalog.interface.js';
 import { withUserAccessToken } from '../services/user-token.service.js';
 
 const SEARCH_TYPES = ['track', 'album', 'artist'] as const;
@@ -40,7 +38,7 @@ export async function searchSpotifyCatalog(req: Request, res: Response) {
   }
 
   const items = await withUserAccessToken(user, (accessToken) =>
-    searchCatalog(accessToken, query, type),
+    searchCatalog(accessToken, query, type, resolveMarket(user.country)),
   );
 
   return sendSuccess(res, { items });

@@ -1,9 +1,29 @@
 import { env } from '../../../config/env.js';
+import type {
+  CatalogItem,
+  CatalogItemType,
+} from '../../spotify/interfaces/catalog.interface.js';
+import type {
+  SpotifyArtistRef,
+  SpotifyImage,
+  SpotifySearchResponse,
+} from '../../spotify/interfaces/spotify-api.interface.js';
+import type {
+  SpotifyProfile,
+  SpotifyTokenResponse,
+} from '../interfaces/spotify-auth.interface.js';
 
 const SPOTIFY_AUTHORIZE_URL = 'https://accounts.spotify.com/authorize';
 const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
 const SPOTIFY_ME_URL = 'https://api.spotify.com/v1/me';
 const SPOTIFY_SEARCH_URL = 'https://api.spotify.com/v1/search';
+const SPOTIFY_API = 'https://api.spotify.com/v1';
+const ISO_COUNTRY = /^[A-Z]{2}$/;
+
+export function resolveMarket(country: string | null | undefined) {
+  const value = country?.trim().toUpperCase();
+  return value && ISO_COUNTRY.test(value) ? value : 'US';
+}
 
 const SCOPES = [
   'user-read-private',
@@ -13,24 +33,6 @@ const SCOPES = [
   'user-modify-playback-state',
   'user-read-currently-playing',
 ].join(' ');
-
-type SpotifyTokenResponse = {
-  access_token: string;
-  token_type: string;
-  scope: string;
-  expires_in: number;
-  refresh_token?: string;
-};
-
-export type SpotifyProfile = {
-  id: string;
-  display_name: string | null;
-  email: string | null;
-  country: string | null;
-  product: string;
-  uri: string | null;
-  images?: Array<{ url: string }>;
-};
 
 function basicAuthHeader() {
   const credentials = Buffer.from(
@@ -158,46 +160,35 @@ async function throwSpotifyError(
   });
 }
 
-export type CatalogItemType = 'track' | 'album' | 'artist';
+export async function spotifyFetch<T>(
+  accessToken: string,
+  path: string,
+  params?: Record<string, string>,
+) {
+  const url = new URL(`${SPOTIFY_API}${path}`);
 
-export type CatalogItem = {
-  id: string;
-  type: CatalogItemType;
-  title: string;
-  subtitle: string;
-  imageUrl: string | null;
-};
+  Object.entries(params ?? {}).forEach(([key, value]) => {
+    url.searchParams.set(key, value);
+  });
 
-type SpotifyImage = {
-  url: string;
-  width?: number | null;
-};
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
 
-type SpotifyArtistRef = {
-  name: string;
-};
+  if (response.status === 401) {
+    throw new SpotifyUnauthorizedError();
+  }
 
-type SpotifySearchResponse = {
-  tracks?: { items: Array<{
-    id: string;
-    name: string;
-    artists: SpotifyArtistRef[];
-    album?: { images?: SpotifyImage[] };
-  }> };
-  albums?: { items: Array<{
-    id: string;
-    name: string;
-    artists: SpotifyArtistRef[];
-    images?: SpotifyImage[];
-  }> };
-  artists?: { items: Array<{
-    id: string;
-    name: string;
-    images?: SpotifyImage[];
-  }> };
-};
+  if (!response.ok) {
+    await throwSpotifyError(response, url.toString());
+  }
 
-function pickImage(images?: SpotifyImage[]) {
+  return (await response.json()) as T;
+}
+
+export function pickImage(images?: SpotifyImage[]) {
   if (!images?.length) {
     return null;
   }
@@ -205,7 +196,7 @@ function pickImage(images?: SpotifyImage[]) {
   return images[1]?.url ?? images[0]?.url ?? null;
 }
 
-function artistNames(artists: SpotifyArtistRef[]) {
+export function artistNames(artists: SpotifyArtistRef[]) {
   return artists.map((artist) => artist.name).join(', ');
 }
 
@@ -229,14 +220,15 @@ export async function searchCatalog(
   accessToken: string,
   query: string,
   type: CatalogItemType | 'all' = 'all',
+  market = 'US',
 ) {
   const types: CatalogItemType[] =
-    type === 'all' ? ['track', 'album', 'artist'] : [type]
+    type === 'all' ? ['track', 'album', 'artist'] : [type];
   const url = new URL(SPOTIFY_SEARCH_URL);
   url.searchParams.set('q', query);
   url.searchParams.set('type', types.join(','));
   url.searchParams.set('limit', '10');
-  url.searchParams.set('market', 'from_token');
+  url.searchParams.set('market', market);
 
   const response = await fetch(url, {
     headers: {

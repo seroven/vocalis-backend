@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import type { Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../../../config/env.js';
-import type { AuthUser } from '../../../types/http.js';
+import type { AuthUser } from '../interfaces/user.interface.js';
 
 const COOKIE_NAME = 'vocalis_session';
 const STATE_TTL_MS = 10 * 60 * 1000;

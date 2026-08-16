@@ -1,45 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pool } from '../../../config/database.js';
-
-export type UserRecord = {
-  id: number;
-  spotify_id: string;
-  display_name: string | null;
-  email: string | null;
-  country: string | null;
-  product: string;
-  spotify_uri: string | null;
-  avatar_url: string | null;
-  access_token: string;
-  refresh_token: string;
-  token_expires_at: Date;
-  created_at: Date;
-  updated_at: Date;
-};
-
-export type UserPayload = {
-  spotifyId: string;
-  displayName: string | null;
-  email: string | null;
-  country: string | null;
-  product: string;
-  spotifyUri: string | null;
-  avatarUrl: string | null;
-  accessToken: string;
-  refreshToken?: string;
-  tokenExpiresAt: Date;
-};
-
-export type PublicUser = {
-  id: number;
-  spotifyId: string;
-  displayName: string | null;
-  email: string | null;
-  country: string | null;
-  product: string;
-  avatarUrl: string | null;
-};
+import type {
+  PublicUser,
+  UserPayload,
+  UserRecord,
+} from '../interfaces/user.interface.js';
 
 export async function ensureUsersTable() {
   const schemaPath = path.resolve(process.cwd(), 'scripts/schema.sql');
