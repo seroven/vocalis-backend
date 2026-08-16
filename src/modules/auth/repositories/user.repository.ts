@@ -143,6 +143,32 @@ export async function upsertUser(payload: UserPayload): Promise<UserRecord> {
   return user;
 }
 
+export async function updateUserTokens(
+  userId: number,
+  payload: {
+    accessToken: string;
+    refreshToken: string;
+    tokenExpiresAt: Date;
+  },
+) {
+  await pool.query(
+    `
+      UPDATE users
+      SET
+        access_token = ?,
+        refresh_token = ?,
+        token_expires_at = ?
+      WHERE id = ?
+    `,
+    [
+      payload.accessToken,
+      payload.refreshToken,
+      payload.tokenExpiresAt,
+      userId,
+    ],
+  );
+}
+
 export function toPublicUser(user: UserRecord): PublicUser {
   return {
     id: user.id,

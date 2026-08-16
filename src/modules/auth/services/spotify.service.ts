@@ -3,6 +3,7 @@ import { env } from '../../../config/env.js';
 const SPOTIFY_AUTHORIZE_URL = 'https://accounts.spotify.com/authorize';
 const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
 const SPOTIFY_ME_URL = 'https://api.spotify.com/v1/me';
+const SPOTIFY_SEARCH_URL = 'https://api.spotify.com/v1/search';
 
 const SCOPES = [
   'user-read-private',
@@ -90,4 +91,211 @@ export async function getCurrentProfile(accessToken: string) {
 
 export function isPremiumAccount(product: string) {
   return product === 'premium';
+}
+
+export async function refreshAccessToken(refreshToken: string) {
+  const body = new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+  });
+
+  const response = await fetch(SPOTIFY_TOKEN_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: basicAuthHeader(),
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body,
+  });
+
+  if (!response.ok) {
+    throw new Error('No se pudo renovar la sesión de Spotify');
+  }
+
+  return (await response.json()) as SpotifyTokenResponse;
+}
+
+export class SpotifyUnauthorizedError extends Error {
+  constructor() {
+    super('La sesión de Spotify ha caducado');
+    this.name = 'SpotifyUnauthorizedError';
+  }
+}
+
+export class SpotifyRequestError extends Error {
+  status: number;
+  payload: unknown;
+
+  constructor(status: number, payload: unknown) {
+    super(
+      typeof payload === 'string'
+        ? payload
+        : JSON.stringify(payload),
+    );
+    this.name = 'SpotifyRequestError';
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
+async function throwSpotifyError(
+  response: Response,
+  requestUrl: string,
+): Promise<never> {
+  const raw = await response.text();
+  let body: unknown = raw;
+
+  try {
+    body = raw ? JSON.parse(raw) : null;
+  } catch {
+    body = raw;
+  }
+
+  throw new SpotifyRequestError(response.status, {
+    request: requestUrl,
+    spotifyStatus: response.status,
+    spotify: body,
+  });
+}
+
+export type CatalogItemType = 'track' | 'album' | 'artist';
+
+export type CatalogItem = {
+  id: string;
+  type: CatalogItemType;
+  title: string;
+  subtitle: string;
+  imageUrl: string | null;
+};
+
+type SpotifyImage = {
+  url: string;
+  width?: number | null;
+};
+
+type SpotifyArtistRef = {
+  name: string;
+};
+
+type SpotifySearchResponse = {
+  tracks?: { items: Array<{
+    id: string;
+    name: string;
+    artists: SpotifyArtistRef[];
+    album?: { images?: SpotifyImage[] };
+  }> };
+  albums?: { items: Array<{
+    id: string;
+    name: string;
+    artists: SpotifyArtistRef[];
+    images?: SpotifyImage[];
+  }> };
+  artists?: { items: Array<{
+    id: string;
+    name: string;
+    images?: SpotifyImage[];
+  }> };
+};
+
+function pickImage(images?: SpotifyImage[]) {
+  if (!images?.length) {
+    return null;
+  }
+
+  return images[1]?.url ?? images[0]?.url ?? null;
+}
+
+function artistNames(artists: SpotifyArtistRef[]) {
+  return artists.map((artist) => artist.name).join(', ');
+}
+
+function interleaveItems(groups: CatalogItem[][]) {
+  const items: CatalogItem[] = [];
+  const max = Math.max(0, ...groups.map((group) => group.length));
+
+  for (let index = 0; index < max; index += 1) {
+    for (const group of groups) {
+      const item = group[index];
+      if (item) {
+        items.push(item);
+      }
+    }
+  }
+
+  return items;
+}
+
+export async function searchCatalog(
+  accessToken: string,
+  query: string,
+  type: CatalogItemType | 'all' = 'all',
+) {
+  const types: CatalogItemType[] =
+    type === 'all' ? ['track', 'album', 'artist'] : [type]
+  const url = new URL(SPOTIFY_SEARCH_URL);
+  url.searchParams.set('q', query);
+  url.searchParams.set('type', types.join(','));
+  url.searchParams.set('limit', '10');
+  url.searchParams.set('market', 'from_token');
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (response.status === 401) {
+    throw new SpotifyUnauthorizedError();
+  }
+
+  if (!response.ok) {
+    await throwSpotifyError(response, url.toString());
+  }
+
+  const payload = (await response.json()) as SpotifySearchResponse;
+  const groups: CatalogItem[][] = [];
+
+  if (types.includes('track')) {
+    groups.push(
+      (payload.tracks?.items ?? [])
+        .filter((item) => item?.id)
+        .map((item) => ({
+          id: `track:${item.id}`,
+          type: 'track' as const,
+          title: item.name,
+          subtitle: artistNames(item.artists ?? []),
+          imageUrl: pickImage(item.album?.images),
+        })),
+    );
+  }
+
+  if (types.includes('album')) {
+    groups.push(
+      (payload.albums?.items ?? [])
+        .filter((item) => item?.id)
+        .map((item) => ({
+          id: `album:${item.id}`,
+          type: 'album' as const,
+          title: item.name,
+          subtitle: artistNames(item.artists ?? []),
+          imageUrl: pickImage(item.images),
+        })),
+    );
+  }
+
+  if (types.includes('artist')) {
+    groups.push(
+      (payload.artists?.items ?? [])
+        .filter((item) => item?.id)
+        .map((item) => ({
+          id: `artist:${item.id}`,
+          type: 'artist' as const,
+          title: item.name,
+          subtitle: 'Artista',
+          imageUrl: pickImage(item.images),
+        })),
+    );
+  }
+
+  return type === 'all' ? interleaveItems(groups) : (groups[0] ?? []);
 }
