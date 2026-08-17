@@ -9,7 +9,7 @@ import {
   getArtistDetail,
   getTrackDetail,
 } from '../services/catalog.service.js';
-import { findLyrics } from '../services/lyrics.service.js';
+import { resolveTrackLyrics } from '../../lyrics/lib/resolve-lyrics.js';
 
 const SPOTIFY_ID = /^[A-Za-z0-9]{10,30}$/;
 
@@ -87,9 +87,12 @@ export async function getTrack(req: Request, res: Response) {
   const track = await withUserAccessToken(user, (token) =>
     getTrackDetail(token, id, resolveMarket(user.country)),
   );
-  const lyrics = track.artistName
-    ? await findLyrics(track.artistName, track.title)
-    : null;
+  const { lyrics, lyricsSource } = await resolveTrackLyrics(
+    user.id,
+    id,
+    track.artistName,
+    track.title,
+  );
 
-  return sendSuccess(res, { track, lyrics });
+  return sendSuccess(res, { track, lyrics, lyricsSource });
 }

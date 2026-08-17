@@ -33,7 +33,10 @@ export interface TrackDetail {
   durationMs: number;
 }
 
+export type LyricsSource = 'catalog' | 'global' | 'user' | null;
+
 export interface TrackLyricsData {
   track: TrackDetail;
   lyrics: string | null;
+  lyricsSource: LyricsSource;
 }
