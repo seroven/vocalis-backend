@@ -47,11 +47,19 @@ export async function playTrack(req: Request, res: Response) {
 
   const trackId = typeof req.body?.trackId === 'string' ? req.body.trackId : '';
   const deviceId = typeof req.body?.deviceId === 'string' ? req.body.deviceId : '';
+  const positionMs = Number(req.body?.positionMs);
 
   if (!SPOTIFY_ID.test(trackId) || !deviceId) {
     return sendError(res, 'No se puede reproducir esta canción', 400);
   }
 
-  await withUserAccessToken(user, (token) => startTrackPlayback(token, trackId, deviceId));
+  await withUserAccessToken(user, (token) =>
+    startTrackPlayback(
+      token,
+      trackId,
+      deviceId,
+      Number.isFinite(positionMs) && positionMs > 0 ? positionMs : 0,
+    ),
+  );
   return sendSuccess(res, { playing: true });
 }

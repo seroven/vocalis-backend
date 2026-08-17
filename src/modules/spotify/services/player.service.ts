@@ -51,12 +51,14 @@ async function playOnDevice(
   accessToken: string,
   trackId: string,
   deviceId: string,
+  positionMs = 0,
 ) {
   await spotifySend(accessToken, '/me/player/play', {
     method: 'PUT',
     params: { device_id: deviceId },
     body: {
       uris: [`spotify:track:${trackId}`],
+      position_ms: Math.max(0, Math.round(positionMs)),
     },
   });
 }
@@ -65,13 +67,14 @@ export async function startTrackPlayback(
   accessToken: string,
   trackId: string,
   deviceId: string,
+  positionMs = 0,
 ) {
   await waitForDevice(accessToken, deviceId);
   await transferPlayback(accessToken, deviceId);
   await wait(200);
 
   try {
-    await playOnDevice(accessToken, trackId, deviceId);
+    await playOnDevice(accessToken, trackId, deviceId, positionMs);
   } catch (error) {
     const missing =
       error instanceof SpotifyRequestError && error.status === 404;
@@ -82,6 +85,6 @@ export async function startTrackPlayback(
 
     await wait(400);
     await transferPlayback(accessToken, deviceId);
-    await playOnDevice(accessToken, trackId, deviceId);
+    await playOnDevice(accessToken, trackId, deviceId, positionMs);
   }
 }

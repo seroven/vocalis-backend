@@ -3,6 +3,7 @@ import { authRoutes } from './modules/auth/auth.routes.js';
 import { favoriteRoutes } from './modules/favorites/favorites.routes.js';
 import { lyricRoutes } from './modules/lyrics/lyrics.routes.js';
 import { spotifyRoutes } from './modules/spotify/spotify.routes.js';
+import { recordingRoutes } from './modules/recordings/recordings.routes.js';
 import { tagRoutes } from './modules/tags/tags.routes.js';
 
 export const apiRouter = Router();
@@ -10,5 +11,6 @@ export const apiRouter = Router();
 apiRouter.use(authRoutes);
 apiRouter.use(favoriteRoutes);
 apiRouter.use(lyricRoutes);
+apiRouter.use(recordingRoutes);
 apiRouter.use(spotifyRoutes);
 apiRouter.use(tagRoutes);
